@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>부채 탈출 게임 대시보드</title>
+<style>
+  :root {
+    --bg: #F4F1EA;
+    --card: #FFFFFF;
+    --border: rgba(20,20,20,0.10);
+    --text: #1C1B19;
+    --text-secondary: #6B6862;
+    --text-tertiary: #9A968D;
+    --accent: #B5472B;
+    --accent-soft: #F5E3DB;
+    --danger: #B5472B;
+    --danger-soft: #FAECE7;
+    --success: #0F6E56;
+    --success-soft: #E1F5EE;
+    --warn: #854F0B;
+    --warn-soft: #FAEEDA;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Pretendard", "Apple SD Gothic Neo", "맑은 고딕", sans-serif;
+    line-height: 1.6;
+  }
+  .wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 4rem;
+  }
+  header {
+    margin-bottom: 1.75rem;
+  }
+  header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+  }
+  header p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 0;
+  }
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 1.5rem;
+  }
+  .metric {
+    background: var(--card);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0.85rem 0.9rem;
+  }
+  .metric .label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin: 0 0 4px;
+  }
+  .metric .value {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+  }
+  .card {
+    background: var(--card);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .card h2 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .hp-bar-track {
+    width: 100%;
+    height: 14px;
+    background: var(--bg);
+    border-radius: 7px;
+    overflow: hidden;
+  }
+  .hp-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.3s;
+  }
+  .hp-sub {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin: 8px 0 0;
+  }
+  .row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .row:last-child { margin-bottom: 0; }
+  .row .label-fixed {
+    font-size: 13px;
+    width: 92px;
+    flex-shrink: 0;
+    color: var(--text-secondary);
+  }
+  input[type="number"], input[type="text"], input[type="date"] {
+    flex: 1;
+    height: 36px;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0 10px;
+    font-size: 14px;
+    background: var(--card);
+    color: var(--text);
+    font-family: inherit;
+  }
+  input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--accent-soft);
+    border-color: var(--accent);
+  }
+  .loan-card {
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 0.85rem;
+    margin-bottom: 10px;
+  }
+  .loan-card:last-child { margin-bottom: 0; }
+  .loan-card-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .loan-name-input {
+    font-weight: 600;
+    font-size: 14px;
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 0;
+    height: auto;
+  }
+  .loan-name-input:focus { box-shadow: none; }
+  .loan-card-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr 70px 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .loan-field { display: flex; flex-direction: column; gap: 4px; }
+  .loan-field-label {
+    font-size: 11px;
+    color: var(--text-tertiary);
+  }
+  .loan-field input { height: 34px; font-size: 13px; }
+  .loan-progress-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .loan-progress-track {
+    flex: 1;
+    height: 8px;
+    background: var(--bg);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .loan-progress-fill {
+    height: 100%;
+    background: var(--success);
+    transition: width 0.2s;
+  }
+  .loan-progress-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    width: 64px;
+    text-align: right;
+  }
+  .loan-computed {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 10px 0;
+    padding: 8px 10px;
+    background: var(--bg);
+    border-radius: var(--radius-md);
+  }
+  .loan-computed-item { text-align: center; }
+  .loan-computed-label {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    display: block;
+    margin-bottom: 2px;
+  }
+  .loan-computed-value {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .month-card {
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 0.85rem;
+    margin-bottom: 10px;
+  }
+  .month-card:last-child { margin-bottom: 0; }
+  .month-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .month-card-title {
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .month-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .month-field { display: flex; flex-direction: column; gap: 4px; }
+  .month-field-label {
+    font-size: 11px;
+    color: var(--text-tertiary);
+  }
+  .month-field input { height: 34px; font-size: 13px; }
+  .month-surplus-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-top: 8px;
+    border-top: 0.5px solid var(--border);
+  }
+  .month-surplus-row .label {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .month-surplus-row .value {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .expense-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .expense-row:last-child { margin-bottom: 0; }
+  .expense-row input[data-field="name"] { flex: 1.2; }
+  .expense-row input[data-field="amount"] { flex: 1; }
+  button {
+    height: 36px;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--card);
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 0 12px;
+  }
+  button:hover { background: var(--bg); }
+  button:active { transform: scale(0.98); }
+  .btn-icon {
+    width: 36px;
+    flex-shrink: 0;
+    padding: 0;
+    color: var(--text-tertiary);
+  }
+  .btn-primary {
+    background: var(--text);
+    color: var(--card);
+    border-color: var(--text);
+    flex: 1;
+  }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-row { display: flex; gap: 8px; margin-top: 4px; }
+  .btn-row button:not(.btn-primary) { flex: 1; }
+  .loan-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+  }
+  .loan-bar-track {
+    flex: 1;
+    height: 10px;
+    background: var(--bg);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  .loan-bar-fill { height: 100%; }
+  .quest-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--bg);
+    border-radius: var(--radius-md);
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+  .quest-num {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .quest-num.p1 { background: var(--danger-soft); color: var(--danger); }
+  .quest-num.p2 { background: var(--warn-soft); color: var(--warn); }
+  .quest-num.p3 { background: var(--success-soft); color: var(--success); }
+  .quest-num.p4 { background: var(--bg); color: var(--text-tertiary); border: 0.5px solid var(--border); }
+  .quest-amt { margin-left: auto; color: var(--text-secondary); }
+  .dynamic-quest {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px;
+    background: var(--bg);
+    border-radius: var(--radius-md);
+    margin-bottom: 6px;
+  }
+  .dynamic-quest:last-child { margin-bottom: 0; }
+  .dynamic-quest input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 2px 0 0;
+    flex-shrink: 0;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .dynamic-quest .qtext {
+    flex: 1;
+  }
+  .dynamic-quest .qtitle {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0 0 2px;
+  }
+  .dynamic-quest .qdesc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin: 0;
+  }
+  .dynamic-quest.done .qtitle,
+  .dynamic-quest.done .qdesc {
+    text-decoration: line-through;
+    color: var(--text-tertiary);
+  }
+  .qtag {
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 5px;
+    flex-shrink: 0;
+    font-weight: 600;
+  }
+  .qtag.urgent { background: var(--danger-soft); color: var(--danger); }
+  .qtag.normal { background: var(--warn-soft); color: var(--warn); }
+  .qtag.habit { background: var(--success-soft); color: var(--success); }
+  .save-note {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    text-align: center;
+    margin: 4px 0 0;
+  }
+  .saved-flash {
+    color: var(--success) !important;
+  }
+  details summary {
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+  .lvbadge {
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+  .lvbadge.danger { background: var(--danger-soft); color: var(--danger); }
+  .lvbadge.warn { background: var(--warn-soft); color: var(--warn); }
+  .lvbadge.success { background: var(--success-soft); color: var(--success); }
+  .qtag.grad { background: #E6F1FB; color: #0C447C; }
+  @media (max-width: 600px) {
+    .wrap { padding: 1.25rem 1rem 3rem; }
+    header h1 { font-size: 19px; }
+    header p { font-size: 13px; }
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+    .metric { padding: 0.75rem 0.8rem; }
+    .metric .value { font-size: 17px; }
+    .card { padding: 1rem; }
+    .row { flex-wrap: wrap; }
+    .row .label-fixed { width: 100%; margin-bottom: 4px; }
+    .loan-card-fields { grid-template-columns: 1fr 1fr; gap: 6px; }
+    .loan-computed { grid-template-columns: 1fr 1fr 1fr; gap: 4px; padding: 6px 8px; }
+    .loan-computed-value { font-size: 12px; }
+    .month-fields { grid-template-columns: 1fr; gap: 6px; }
+    .loan-field-label { font-size: 10px; }
+    .loan-field input { font-size: 12px; padding: 0 6px; }
+    .btn-icon { width: 30px; }
+    .btn-row { flex-wrap: wrap; }
+    .btn-row button { flex: 1 1 calc(50% - 4px); min-width: 0; }
+    .loan-bar-row { flex-wrap: wrap; gap: 6px; }
+    .loan-bar-row span:first-child { width: 100%; }
+    .loan-bar-track { order: 1; flex-basis: 60%; }
+  }
+  @media (max-width: 380px) {
+    .metrics { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .metric .value { font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>부채 탈출 게임 대시보드</h1>
+  <p>숫자만 입력하면 나머지는 자동으로 계산됩니다. 이 파일을 다시 열면 입력값이 그대로 남아있습니다.</p>
+</header>
+
+<div class="metrics">
+  <div class="metric"><p class="label">총부채</p><p class="value" id="m-total-debt">-</p></div>
+  <div class="metric"><p class="label">순부채</p><p class="value" id="m-net-debt">-</p></div>
+  <div class="metric"><p class="label">비상금 달성률</p><p class="value" id="m-emerg-pct">-</p></div>
+  <div class="metric"><p class="label">도박 무입금</p><p class="value" id="m-streak">-</p></div>
+</div>
+
+<div class="card">
+  <h2>보스 HP (순부채 감소 진행률)<span id="hp-pct" style="font-size:13px; color:var(--text-secondary); font-weight:400;">-</span></h2>
+  <div class="hp-bar-track"><div class="hp-bar-fill" id="hp-bar" style="width:0%;"></div></div>
+  <p class="hp-sub" id="hp-sub">값을 입력하면 진행률이 표시됩니다</p>
+</div>
+
+<div class="card">
+  <h2>예상 완료 시기<span id="surplus-basis" style="font-size:12px; color:var(--text-tertiary); font-weight:400;">-</span></h2>
+  <div id="payoff-result"></div>
+</div>
+
+<div class="card">
+  <h2>고정지출 항목<button id="add-expense">+ 항목 추가</button></h2>
+  <p style="font-size:12px; color:var(--text-tertiary); margin:0 0 12px;">통신비, 보험료, 생활비, 구독료 등 매달 나가는 돈을 자유롭게 기입하세요. 대출 월납입 합계는 자동으로 더해집니다.</p>
+  <div id="expenses-list"></div>
+  <div id="expense-total" style="font-size:13px; font-weight:600; margin-top:10px; padding-top:10px; border-top:0.5px solid var(--border);">-</div>
+</div>
+
+<div class="card">
+  <h2>월별 기록<button id="add-month">+ 이번 달 기록</button></h2>
+  <p style="font-size:12px; color:var(--text-tertiary); margin:0 0 12px;">매달 들어온 돈과 나간 돈을 기록하면, 평균 여유자금이 자동 계산되어 위 예상 완료 시기에 반영됩니다.</p>
+  <div id="months-list"></div>
+</div>
+
+<div class="card">
+  <h2>대출 잔액<button id="add-loan">+ 대출 추가</button></h2>
+  <div id="loan-payment-total" style="font-size:13px; color:var(--text-secondary); margin:0 0 12px;">-</div>
+  <div id="loans-list"></div>
+</div>
+
+<div class="card">
+  <h2>대출 비교 (금리 높은 순)</h2>
+  <div id="loans-chart"></div>
+</div>
+
+<div class="card">
+  <h2>가족 채무</h2>
+  <div class="row"><span class="label-fixed">동생 채무</span><input type="number" id="sibling-debt" placeholder="원"></div>
+  <div class="row"><span class="label-fixed">아버지 채무</span><input type="number" id="father-debt" placeholder="원"></div>
+  <div class="row" style="margin-top:10px;">
+    <input type="checkbox" id="family-unconfirmed" style="width:18px; height:18px; flex:none; accent-color:var(--accent); cursor:pointer;">
+    <label for="family-unconfirmed" style="font-size:13px; color:var(--text-secondary); cursor:pointer;">아직 정확한 금액 확인 전 (추정치)</label>
+  </div>
+</div>
+
+<div class="card">
+  <h2>현금 & 비상금</h2>
+  <div class="row"><span class="label-fixed">현재 보유현금</span><input type="number" id="cash" placeholder="원"></div>
+  <div class="row"><span class="label-fixed">비상금 목표</span><input type="number" id="emerg-goal" placeholder="원"></div>
+</div>
+
+<div class="card">
+  <h2>도박 무입금 트래커</h2>
+  <div class="row"><span class="label-fixed">마지막 도박일</span><input type="date" id="last-gamble"></div>
+</div>
+
+<div class="card">
+  <h2>현재 레벨<span id="lv-badge" class="lvbadge">-</span></h2>
+  <p id="level-label" style="font-size:16px; font-weight:600; margin:0 0 4px;">-</p>
+  <p id="level-sub" style="font-size:13px; color:var(--text-secondary); margin:0;">-</p>
+</div>
+
+<div class="card">
+  <h2>이번 주 퀘스트<span style="font-size:12px; color:var(--text-tertiary); font-weight:400;">상태에 맞춰 자동 생성</span></h2>
+  <div id="quest-list"></div>
+</div>
+
+<div class="card">
+  <h2>월급 배분 순서 (참고)</h2>
+  <div class="quest-item"><span class="quest-num p1">1</span><span>대출 납입</span><span class="quest-amt" id="q-loan-pay">-</span></div>
+  <div class="quest-item"><span class="quest-num p2">2</span><span>생활비</span><span class="quest-amt">우선순위 2</span></div>
+  <div class="quest-item"><span class="quest-num p3">3</span><span>동생 상환</span><span class="quest-amt">우선순위 3</span></div>
+  <div class="quest-item"><span class="quest-num p4">4</span><span>비상금 적립</span><span class="quest-amt">우선순위 4</span></div>
+  <div class="quest-item"><span class="quest-num p4">5</span><span>고금리 추가상환</span><span class="quest-amt">남는 금액</span></div>
+</div>
+
+<details>
+  <summary>시작 순부채 다시 설정 (보스 HP 기준점 변경)</summary>
+  <div class="row">
+    <span class="label-fixed" style="width:110px;">시작 순부채</span>
+    <input type="number" id="start-net-debt" placeholder="원">
+  </div>
+</details>
+
+<div class="btn-row" style="margin-top:1rem;">
+  <button class="btn-primary" id="save-btn">저장</button>
+  <button id="export-btn">백업 내보내기</button>
+  <button id="import-btn">백업 가져오기</button>
+  <button id="reset-btn">초기화</button>
+</div>
+<input type="file" id="import-file" accept=".json" style="display:none;">
+<p class="save-note">입력하는 즉시 자동 저장됩니다. 다른 기기에서 이어보려면 "백업 내보내기"로 파일을 저장한 뒤 "백업 가져오기"로 불러오세요.</p>
+
+</div>
+
+<script>
+const STORAGE_KEY = 'debt_game_dashboard_v1';
+
+function defaultData() {
+  return {
+    loans: [
+      {name:'신규대출', principal:20000000, rate:17.08, startDate:'2026-06-01', termMonths:120},
+      {name:'A대출', principal:6755448, rate:14.4, startDate:'', termMonths:'', manualBalance:6755448},
+      {name:'B대출', principal:3000000, rate:12.5, startDate:'', termMonths:'', manualBalance:3000000},
+      {name:'C대출', principal:3666676, rate:9.07, startDate:'', termMonths:'', manualBalance:3666676},
+      {name:'D대출', principal:14324248, rate:17.7, startDate:'', termMonths:'', manualBalance:14324248},
+      {name:'E비상금대출', principal:3000000, rate:13.5, startDate:'', termMonths:'', manualBalance:3000000}
+    ],
+    siblingDebt: 3000000,
+    fatherDebt: 1200000,
+    familyDebtUnconfirmed: true,
+    cash: 200000,
+    emergGoal: 3000000,
+    expenses: [
+      {name:'통신비', amount:69000},
+      {name:'교통비', amount:80000},
+      {name:'생활비', amount:550000}
+    ],
+    monthlyRecords: [],
+    lastGamble: '2026-06-23',
+    startNetDebt: null,
+    prevNetDebt: null,
+    questDone: {}
+  };
+}
+
+function loadData() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    if (saved) return saved;
+  } catch(e) {}
+  return defaultData();
+}
+
+let data = loadData();
+
+function saveData() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
+}
+
+function fmt(n) {
+  if (n === null || n === undefined || isNaN(n)) return '-';
+  return Math.round(n).toLocaleString() + '원';
+}
+
+function monthLabel(ym) {
+  const [y, m] = ym.split('-');
+  return `${y}년 ${parseInt(m)}월`;
+}
+
+function currentMonthKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+function renderExpenses() {
+  const el = document.getElementById('expenses-list');
+  el.innerHTML = '';
+  if (!data.expenses) data.expenses = [];
+  if (data.expenses.length === 0) {
+    el.innerHTML = '<p style="font-size:13px; color:var(--text-tertiary); margin:0;">아직 항목이 없습니다. "+ 항목 추가"를 눌러 통신비, 보험료, 생활비 등을 넣어보세요.</p>';
+  } else {
+    data.expenses.forEach((exp, i) => {
+      const row = document.createElement('div');
+      row.className = 'row expense-row';
+      row.innerHTML = `
+        <input type="text" value="${exp.name}" data-idx="${i}" data-field="name" placeholder="항목명">
+        <input type="number" value="${exp.amount}" data-idx="${i}" data-field="amount" placeholder="원">
+        <button class="btn-icon" data-idx="${i}" aria-label="삭제">×</button>
+      `;
+      el.appendChild(row);
+    });
+  }
+  el.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', (e) => {
+      const idx = parseInt(e.target.dataset.idx);
+      const field = e.target.dataset.field;
+      data.expenses[idx][field] = field === 'name' ? e.target.value : (parseFloat(e.target.value) || 0);
+      updateExpenseTotal();
+    });
+  });
+  el.querySelectorAll('button.btn-icon').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = parseInt(e.currentTarget.dataset.idx);
+      data.expenses.splice(idx, 1);
+      renderExpenses();
+      saveData();
+    });
+  });
+  updateExpenseTotal();
+}
+
+function getExpenseTotal() {
+  const itemSum = (data.expenses || []).reduce((s, e) => s + (e.amount||0), 0);
+  const loanPaySum = data.loans.reduce((s,l) => s + computeLoanDerived(l).payment, 0);
+  return {itemSum, loanPaySum, total: itemSum + loanPaySum};
+}
+
+function updateExpenseTotal() {
+  const {itemSum, loanPaySum, total} = getExpenseTotal();
+  document.getElementById('expense-total').innerHTML =
+    `고정지출 합계: ${fmt(total)} <span style="color:var(--text-tertiary); font-weight:400;">(항목 ${fmt(itemSum)} + 대출 월납입 ${fmt(loanPaySum)})</span>`;
+  saveData();
+}
+
+function renderMonths() {
+  const el = document.getElementById('months-list');
+  el.innerHTML = '';
+  if (!data.monthlyRecords || data.monthlyRecords.length === 0) {
+    el.innerHTML = '<p style="font-size:13px; color:var(--text-tertiary); margin:0;">아직 기록이 없습니다. "+ 이번 달 기록"을 눌러 시작하세요.</p>';
+    return;
+  }
+  const sorted = [...data.monthlyRecords].sort((a,b) => b.month.localeCompare(a.month));
+  sorted.forEach((rec) => {
+    const idx = data.monthlyRecords.indexOf(rec);
+    const surplus = (rec.income || 0) - (rec.expense || 0);
+    const card = document.createElement('div');
+    card.className = 'month-card';
+    card.dataset.monthIdx = idx;
+    card.innerHTML = `
+      <div class="month-card-top">
+        <span class="month-card-title">${monthLabel(rec.month)}</span>
+        <button class="btn-icon" data-idx="${idx}" aria-label="삭제">×</button>
+      </div>
+      <div class="month-fields">
+        <div class="month-field">
+          <span class="month-field-label">이번달 수입(기본급+인센티브)</span>
+          <input type="number" value="${rec.income}" data-idx="${idx}" data-field="income" placeholder="원">
+        </div>
+        <div class="month-field">
+          <span class="month-field-label">이번달 지출(대출+생활비 등)</span>
+          <input type="number" value="${rec.expense}" data-idx="${idx}" data-field="expense" placeholder="원">
+        </div>
+      </div>
+      <div class="month-surplus-row">
+        <span class="label">이번달 여유자금</span>
+        <span class="value" style="color:${surplus >= 0 ? 'var(--success)' : 'var(--danger)'};">${fmt(surplus)}</span>
+      </div>
+    `;
+    el.appendChild(card);
+  });
+  el.querySelectorAll('.month-card input').forEach(inp => {
+    inp.addEventListener('input', (e) => {
+      const idx = parseInt(e.target.dataset.idx);
+      const field = e.target.dataset.field;
+      data.monthlyRecords[idx][field] = parseFloat(e.target.value) || 0;
+      updateMonthSurplus(idx);
+      calculate();
+    });
+  });
+  el.querySelectorAll('.month-card button.btn-icon').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = parseInt(e.currentTarget.dataset.idx);
+      data.monthlyRecords.splice(idx, 1);
+      renderMonths();
+      calculate();
+    });
+  });
+}
+
+function updateMonthSurplus(idx) {
+  const rec = data.monthlyRecords[idx];
+  if (!rec) return;
+  const surplus = (rec.income || 0) - (rec.expense || 0);
+  const card = document.querySelector(`.month-card[data-month-idx="${idx}"]`);
+  if (!card) return;
+  const valueEl = card.querySelector('.month-surplus-row .value');
+  if (valueEl) {
+    valueEl.textContent = fmt(surplus);
+    valueEl.style.color = surplus >= 0 ? 'var(--success)' : 'var(--danger)';
+  }
+}
+
+function getAverageSurplus() {
+  if (!data.monthlyRecords || data.monthlyRecords.length === 0) return null;
+  const recent = [...data.monthlyRecords].sort((a,b) => b.month.localeCompare(a.month)).slice(0, 3);
+  const total = recent.reduce((s, r) => s + ((r.income||0) - (r.expense||0)), 0);
+  return {avg: total / recent.length, count: recent.length};
+}
+
+function loanMonthlyPayment(principal, annualRatePct, months) {
+  if (!principal || !months) return 0;
+  const r = (annualRatePct || 0) / 100 / 12;
+  if (r === 0) return principal / months;
+  const factor = Math.pow(1 + r, months);
+  return principal * (r * factor) / (factor - 1);
+}
+
+function monthsElapsed(startDateStr) {
+  if (!startDateStr) return 0;
+  const start = new Date(startDateStr);
+  const today = new Date();
+  let count = (today.getFullYear() - start.getFullYear()) * 12 + (today.getMonth() - start.getMonth());
+  if (today.getDate() < start.getDate()) count -= 1;
+  return Math.max(0, count);
+}
+
+function loanRemainingBalance(principal, annualRatePct, months, paymentsMade) {
+  if (!principal || !months) return principal || 0;
+  if (paymentsMade <= 0) return principal;
+  if (paymentsMade >= months) return 0;
+  const r = (annualRatePct || 0) / 100 / 12;
+  const pmt = loanMonthlyPayment(principal, annualRatePct, months);
+  if (r === 0) return Math.max(0, principal - pmt * paymentsMade);
+  const factor = Math.pow(1 + r, paymentsMade);
+  const balance = principal * factor - pmt * ((factor - 1) / r);
+  return Math.max(0, balance);
+}
+
+function computeLoanDerived(loan) {
+  const principal = loan.principal || 0;
+  const rate = loan.rate || 0;
+  const months = loan.termMonths || 0;
+
+  if (!loan.startDate || !months) {
+    const fallbackBalance = (loan.manualBalance !== undefined && loan.manualBalance !== null && loan.manualBalance !== '')
+      ? loan.manualBalance
+      : principal;
+    return {
+      payment: months > 0 ? loanMonthlyPayment(principal, rate, months) : 0,
+      balance: fallbackBalance,
+      paymentsMade: 0,
+      remainingMonths: months,
+      payoffDate: null,
+      isEstimated: true
+    };
+  }
+
+  const payment = loanMonthlyPayment(principal, rate, months);
+  const elapsed = monthsElapsed(loan.startDate);
+  const paymentsMade = Math.min(elapsed, months);
+  const balance = loanRemainingBalance(principal, rate, months, paymentsMade);
+  const remainingMonths = Math.max(0, months - paymentsMade);
+  const start = new Date(loan.startDate);
+  const payoffDate = new Date(start);
+  payoffDate.setMonth(payoffDate.getMonth() + months);
+  return {payment, balance, paymentsMade, remainingMonths, payoffDate, isEstimated: false};
+}
+
+function renderLoans() {
+  const el = document.getElementById('loans-list');
+  el.innerHTML = '';
+  data.loans.forEach((loan, i) => {
+    if (loan.principal === undefined || loan.principal === null) {
+      loan.principal = loan.balance || 0;
+    }
+    const derived = computeLoanDerived(loan);
+    const principal = loan.principal || 0;
+    const repaidPct = principal > 0 ? Math.min(100, Math.max(0, (1 - derived.balance / principal) * 100)) : 0;
+    const payoffStr = derived.payoffDate
+      ? `${derived.payoffDate.getFullYear()}.${String(derived.payoffDate.getMonth()+1).padStart(2,'0')}`
+      : '-';
+
+    const card = document.createElement('div');
+    card.className = 'loan-card';
+    card.dataset.cardIdx = i;
+    card.innerHTML = `
+      <div class="loan-card-top">
+        <input type="text" value="${loan.name}" data-idx="${i}" data-field="name" class="loan-name-input">
+        <button class="btn-icon" data-idx="${i}" aria-label="삭제">×</button>
+      </div>
+      <div class="loan-card-fields">
+        <div class="loan-field">
+          <span class="loan-field-label">원금</span>
+          <input type="number" value="${loan.principal}" data-idx="${i}" data-field="principal" placeholder="최초 빌린 금액">
+        </div>
+        <div class="loan-field">
+          <span class="loan-field-label">금리(연%)</span>
+          <input type="number" value="${loan.rate}" data-idx="${i}" data-field="rate" placeholder="연%" step="0.01">
+        </div>
+        <div class="loan-field">
+          <span class="loan-field-label">대출 시작일</span>
+          <input type="date" value="${loan.startDate||''}" data-idx="${i}" data-field="startDate">
+        </div>
+        <div class="loan-field">
+          <span class="loan-field-label">대출 기간(개월)</span>
+          <input type="number" value="${loan.termMonths||''}" data-idx="${i}" data-field="termMonths" placeholder="예: 120">
+        </div>
+      </div>
+      ${derived.isEstimated ? `
+      <div class="row" style="margin-bottom:10px;">
+        <span class="label-fixed" style="width:120px;">현재 잔액(직접입력)</span>
+        <input type="number" value="${loan.manualBalance !== undefined && loan.manualBalance !== '' ? loan.manualBalance : ''}" data-idx="${i}" data-field="manualBalance" placeholder="시작일·기간 모를 때만">
+      </div>
+      <p style="font-size:11px; color:var(--text-tertiary); margin:0 0 10px;">시작일과 기간을 입력하면 잔액이 자동으로 계산되어, 이 칸은 더 이상 직접 입력하지 않아도 됩니다.</p>
+      ` : ''}
+      <div class="loan-computed">
+        <div class="loan-computed-item">
+          <span class="loan-computed-label">월 납입금${derived.isEstimated && !loan.termMonths ? '' : '(자동)'}</span>
+          <span class="loan-computed-value">${fmt(derived.payment)}</span>
+        </div>
+        <div class="loan-computed-item">
+          <span class="loan-computed-label">현재 잔액${derived.isEstimated ? '(입력값)' : '(자동)'}</span>
+          <span class="loan-computed-value">${fmt(derived.balance)}</span>
+        </div>
+        <div class="loan-computed-item">
+          <span class="loan-computed-label">완납 예정</span>
+          <span class="loan-computed-value">${payoffStr}</span>
+        </div>
+      </div>
+      <div class="loan-progress-row">
+        <div class="loan-progress-track"><div class="loan-progress-fill" style="width:${repaidPct}%;"></div></div>
+        <span class="loan-progress-label">${Math.round(repaidPct)}% 상환${derived.isEstimated ? '' : ` (${derived.paymentsMade}/${loan.termMonths||0}회)`}</span>
+      </div>
+    `;
+    el.appendChild(card);
+  });
+  el.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', (e) => {
+      const idx = parseInt(e.target.dataset.idx);
+      const field = e.target.dataset.field;
+      let val;
+      if (field === 'name' || field === 'startDate') val = e.target.value;
+      else val = parseFloat(e.target.value) || 0;
+      data.loans[idx][field] = val;
+      if (field === 'startDate' || field === 'termMonths') {
+        renderLoans();
+      } else {
+        updateLoanComputed(idx);
+      }
+      calculate();
+    });
+  });
+  el.querySelectorAll('button.btn-icon').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = parseInt(e.currentTarget.dataset.idx);
+      data.loans.splice(idx, 1);
+      renderLoans();
+      renderLoansChart();
+      calculate();
+    });
+  });
+}
+
+function updateLoanComputed(idx) {
+  const loan = data.loans[idx];
+  if (!loan) return;
+  const derived = computeLoanDerived(loan);
+  const principal = loan.principal || 0;
+  const repaidPct = principal > 0 ? Math.min(100, Math.max(0, (1 - derived.balance / principal) * 100)) : 0;
+  const payoffStr = derived.payoffDate
+    ? `${derived.payoffDate.getFullYear()}.${String(derived.payoffDate.getMonth()+1).padStart(2,'0')}`
+    : '-';
+  const card = document.querySelector(`.loan-card[data-card-idx="${idx}"]`);
+  if (!card) return;
+  const values = card.querySelectorAll('.loan-computed-value');
+  if (values[0]) values[0].textContent = fmt(derived.payment);
+  if (values[1]) values[1].textContent = fmt(derived.balance);
+  if (values[2]) values[2].textContent = payoffStr;
+  const fill = card.querySelector('.loan-progress-fill');
+  const label = card.querySelector('.loan-progress-label');
+  if (fill) fill.style.width = repaidPct + '%';
+  if (label) label.textContent = derived.isEstimated
+    ? `${Math.round(repaidPct)}% 상환`
+    : `${Math.round(repaidPct)}% 상환 (${derived.paymentsMade}/${loan.termMonths||0}회)`;
+}
+
+function renderLoansChart() {
+  const el = document.getElementById('loans-chart');
+  el.innerHTML = '';
+  const withBalance = data.loans.map(l => ({...l, _balance: computeLoanDerived(l).balance}));
+  const sorted = withBalance.sort((a,b) => b.rate - a.rate);
+  const maxBal = Math.max(...sorted.map(l => l._balance), 1);
+  sorted.forEach((l, i) => {
+    const pct = (l._balance / maxBal * 100).toFixed(0);
+    const isTop = i < 2;
+    const row = document.createElement('div');
+    row.className = 'loan-bar-row';
+    row.innerHTML = `
+      <span style="font-size:13px; width:84px; flex-shrink:0;">${l.name}</span>
+      <span style="font-size:12px; color:${isTop ? 'var(--danger)' : 'var(--text-secondary)'}; width:50px; flex-shrink:0;">${l.rate}%</span>
+      <div class="loan-bar-track"><div class="loan-bar-fill" style="width:${pct}%; background:${isTop ? 'var(--danger)' : 'var(--text-tertiary)'};"></div></div>
+      <span style="font-size:12px; color:var(--text-secondary); width:80px; text-align:right; flex-shrink:0;">${(l._balance/10000).toLocaleString()}만</span>
+    `;
+    el.appendChild(row);
+  });
+}
+
+function calcPayoffEstimate(netDebt, monthlySurplus, weightedAnnualRate) {
+  if (netDebt <= 0) {
+    return {type: 'graduated'};
+  }
+  if (!monthlySurplus || monthlySurplus <= 0) {
+    return {type: 'no-input'};
+  }
+  const monthlyRate = (weightedAnnualRate || 0) / 100 / 12;
+  let balance = netDebt;
+  let months = 0;
+  const maxMonths = 600;
+  while (balance > 0 && months < maxMonths) {
+    const interest = balance * monthlyRate;
+    balance = balance + interest - monthlySurplus;
+    months++;
+    if (monthlySurplus <= balance + interest - balance && interest >= monthlySurplus) {
+      return {type: 'never', months: null};
+    }
+  }
+  if (months >= maxMonths) {
+    return {type: 'never'};
+  }
+  const targetDate = new Date();
+  targetDate.setMonth(targetDate.getMonth() + months);
+  return {type: 'ok', months, date: targetDate};
+}
+
+function renderPayoffEstimate(netDebt) {
+  const balances = data.loans.map(l => computeLoanDerived(l).balance);
+  const totalLoanBalance = balances.reduce((s,b) => s + b, 0);
+  const weightedRate = totalLoanBalance > 0
+    ? data.loans.reduce((s,l,idx) => s + balances[idx] * (l.rate||0), 0) / totalLoanBalance
+    : 0;
+
+  const basisEl = document.getElementById('surplus-basis');
+  const el = document.getElementById('payoff-result');
+
+  if (netDebt <= 0) {
+    basisEl.textContent = '';
+    el.innerHTML = `<p style="font-size:14px; font-weight:600; color:var(--success); margin:0;">이미 순부채를 다 갚았습니다.</p>`;
+    return;
+  }
+
+  const avgInfo = getAverageSurplus();
+  if (!avgInfo) {
+    basisEl.textContent = '';
+    el.innerHTML = `<p style="font-size:13px; color:var(--text-tertiary); margin:0;">아래 "월별 기록"에 최소 1개월치를 입력하면 예상 완료일이 계산됩니다.</p>`;
+    return;
+  }
+
+  basisEl.textContent = `최근 ${avgInfo.count}개월 평균 기준`;
+  const surplus = avgInfo.avg;
+
+  if (surplus <= 0) {
+    el.innerHTML = `<p style="font-size:13px; color:var(--danger); margin:0;">최근 기록상 여유자금이 0원 이하입니다. 지출을 줄이거나 인센티브를 추가상환에 배정해야 순부채가 줄어듭니다.</p>`;
+    return;
+  }
+
+  const result = calcPayoffEstimate(netDebt, surplus, weightedRate);
+
+  if (result.type === 'never') {
+    el.innerHTML = `<p style="font-size:13px; color:var(--danger); margin:0;">최근 평균 여유자금(${fmt(surplus)})으로는 이자가 원금 감소분보다 많아 줄어들지 않습니다. 고금리 대출 대환이나 여유자금 증액이 필요합니다.</p>`;
+    return;
+  }
+  const years = Math.floor(result.months / 12);
+  const remMonths = result.months % 12;
+  const yearStr = years > 0 ? `${years}년 ` : '';
+  const dateStr = `${result.date.getFullYear()}년 ${result.date.getMonth()+1}월`;
+  el.innerHTML = `
+    <p style="font-size:20px; font-weight:600; margin:0 0 4px;">${dateStr}</p>
+    <p style="font-size:13px; color:var(--text-secondary); margin:0;">약 ${yearStr}${remMonths}개월 후 순부채 완전 청산 예상 (가중평균 금리 ${weightedRate.toFixed(1)}%, 월 평균 여유자금 ${fmt(surplus)} 기준)</p>
+  `;
+}
+
+function calculate() {
+  const loanDerivedList = data.loans.map(l => computeLoanDerived(l));
+  const totalLoans = loanDerivedList.reduce((s,d) => s + d.balance, 0);
+  const familyDebt = (data.siblingDebt||0) + (data.fatherDebt||0);
+  const totalDebt = totalLoans + familyDebt;
+  const cash = data.cash || 0;
+  const netDebt = totalDebt - cash;
+  const emergGoal = data.emergGoal || 1;
+  const emergPct = Math.min(cash / emergGoal, 1) * 100;
+  const loanPaySum = loanDerivedList.reduce((s,d) => s + d.payment, 0);
+
+  document.getElementById('m-total-debt').textContent = fmt(totalDebt);
+  document.getElementById('m-net-debt').textContent = fmt(netDebt);
+  document.getElementById('m-emerg-pct').textContent = Math.round(emergPct) + '%';
+  document.getElementById('q-loan-pay').textContent = fmt(loanPaySum) === '0원' ? '대출별 정보 미입력' : fmt(loanPaySum);
+  document.getElementById('loan-payment-total').innerHTML = loanPaySum > 0
+    ? `대출 월 납입금액 합계(자동계산): <strong style="color:var(--text); font-weight:600;">${fmt(loanPaySum)}</strong>`
+    : '각 대출의 원금·금리·기간을 입력하면 월 납입금이 자동 계산됩니다.';
+
+  let streak = 0;
+  if (data.lastGamble) {
+    const last = new Date(data.lastGamble);
+    const today = new Date();
+    streak = Math.max(0, Math.floor((today - last) / (1000*60*60*24)));
+    document.getElementById('m-streak').textContent = streak + '일';
+  } else {
+    document.getElementById('m-streak').textContent = '-';
+  }
+
+  if (data.startNetDebt === null || data.startNetDebt === undefined) {
+    data.startNetDebt = netDebt;
+  }
+  const start = data.startNetDebt || 1;
+  const progress = start > 0 ? Math.max(0, Math.min(1, 1 - netDebt / start)) : 0;
+  document.getElementById('hp-pct').textContent = netDebt <= 0 ? '100%' : Math.round(progress*100) + '%';
+  document.getElementById('hp-bar').style.width = (netDebt <= 0 ? 100 : progress*100) + '%';
+  document.getElementById('hp-sub').textContent = netDebt <= 0
+    ? `시작 ${fmt(start)} → 완전 청산, 순자산 ${fmt(Math.abs(netDebt))}`
+    : `시작 ${fmt(start)} → 현재 ${fmt(netDebt)}`;
+
+  const loansIncomplete = data.loans.some(l => !l.principal || !l.termMonths || !l.startDate);
+  const familyDebtUnconfirmed = !!data.familyDebtUnconfirmed;
+  const cashRunwayDays = (cash > 0 && loanPaySum > 0) ? Math.round(cash / (loanPaySum/30)) : null;
+
+  renderQuests({
+    streak, cash, emergGoal, emergPct, netDebt,
+    prevNetDebt: data.prevNetDebt !== undefined ? data.prevNetDebt : null,
+    progress, loansIncomplete, familyDebtUnconfirmed, monthlyLoanPayment: loanPaySum,
+    cashRunwayDays, familyDebtRemain: familyDebt
+  });
+
+  renderLoansChart();
+  renderPayoffEstimate(netDebt);
+  data.prevNetDebt = netDebt;
+  saveData();
+}
+
+function getLevel(streak, emergPct, progress, netDebt) {
+  if (netDebt <= 0) {
+    const netAsset = Math.abs(netDebt);
+    if (netAsset >= 10000000) {
+      return {label:'LV.7 자산 형성 가속', sub:`순자산 ${fmt(netAsset)} 보유. 빚 갚던 그 속도로 이제 자산을 쌓는 단계입니다.`, badge:'LV.7', cls:'success'};
+    }
+    return {label:'LV.6 부채 졸업', sub:'순부채 0 이하 달성. 이제부터는 자산 형성 게임입니다.', badge:'LV.6', cls:'success'};
+  }
+  if (progress >= 0.9) {
+    return {label:'LV.5 청산 임박', sub:'순부채의 90% 이상을 줄였습니다. 마지막 구간입니다.', badge:'LV.5', cls:'success'};
+  }
+  if (streak >= 90 && emergPct >= 100) {
+    return {label:'LV.4 가속 구간', sub:'비상금 목표 달성 + 도박 무입금 90일. 고금리 추가상환에 집중할 차례입니다.', badge:'LV.4', cls:'warn'};
+  }
+  if (streak >= 30 && emergPct >= 50) {
+    return {label:'LV.3 구조 안정', sub:'도박 무입금 30일을 넘겼고 비상금도 절반 이상 모였습니다.', badge:'LV.3', cls:'warn'};
+  }
+  if (streak >= 30) {
+    return {label:'LV.2 안정화 진입', sub:'도박 무입금 30일 달성. 다음은 비상금 50% 채우기입니다.', badge:'LV.2', cls:'warn'};
+  }
+  return {label:'LV.1 생존 모드', sub:'추가 대출·도박 없이 버티는 게 최우선입니다.', badge:'LV.1', cls:'danger'};
+}
+
+function buildQuests(ctx) {
+  const quests = [];
+  const {
+    streak, cash, emergGoal, emergPct, netDebt, prevNetDebt,
+    loansIncomplete, familyDebtUnconfirmed, monthlyLoanPayment,
+    cashRunwayDays, progress, familyDebtRemain
+  } = ctx;
+
+  if (netDebt <= 0) {
+    quests.push({
+      tag: 'grad', tagLabel: '졸업',
+      title: '부채 졸업 완료',
+      desc: '순부채가 0 이하입니다. 이제 비상금을 생활비 6개월치 수준으로 키우는 걸 다음 목표로 잡아보세요.',
+      id: 'graduated'
+    });
+    if (familyDebtRemain > 0) {
+      quests.push({
+        tag: 'normal', tagLabel: '마무리',
+        title: '가족 채무 완전 정리',
+        desc: `동생·아버지 채무가 아직 ${fmt(familyDebtRemain)} 남아있습니다. 졸업 기념으로 우선 정리하세요.`,
+        id: 'family-remain'
+      });
+    }
+    quests.push({
+      tag: 'habit', tagLabel: '다음 단계',
+      title: '자산형 청년 정책 검토',
+      desc: '청년도약계좌, 청년형 ISA 등 5년 이상 묶이는 상품도 이제 검토할 타이밍입니다.',
+      id: 'asset-policy'
+    });
+  } else if (progress >= 0.9) {
+    quests.push({
+      tag: 'urgent', tagLabel: '마지막',
+      title: '마지막 구간 집중',
+      desc: `순부채 ${fmt(netDebt)} 남았습니다. 여기서 무너지면 가장 아까운 지점입니다. 추가상환 속도를 유지하세요.`,
+      id: 'final-push'
+    });
+  }
+
+  if (cash > 0 && monthlyLoanPayment > 0 && cashRunwayDays !== null && cashRunwayDays < 7) {
+    quests.push({
+      tag: 'urgent', tagLabel: '긴급',
+      title: '현금 부족 경고',
+      desc: `현재 현금으로 약 ${cashRunwayDays}일 버틸 수 있습니다. 추가 지출을 최대한 줄이세요.`,
+      id: 'cash-warning'
+    });
+  }
+
+  if (streak < 1) {
+    quests.push({
+      tag: 'urgent', tagLabel: '오늘',
+      title: '도박 무입금 1일차 시작',
+      desc: '오늘부터 다시 셉니다. 0에서 시작하는 게 정상입니다.',
+      id: 'streak-start'
+    });
+  } else if (streak < 7) {
+    quests.push({
+      tag: 'habit', tagLabel: '진행중',
+      title: `도박 무입금 ${streak}일째`,
+      desc: '7일을 채우면 가장 위험한 구간을 넘깁니다.',
+      id: 'streak-7'
+    });
+  } else if (streak < 30) {
+    quests.push({
+      tag: 'habit', tagLabel: '진행중',
+      title: `도박 무입금 ${streak}일째`,
+      desc: '30일을 채우면 LV.2로 올라갑니다.',
+      id: 'streak-30'
+    });
+  } else if (streak < 90) {
+    quests.push({
+      tag: 'habit', tagLabel: '진행중',
+      title: `도박 무입금 ${streak}일째`,
+      desc: '90일 구간은 재발 가능성이 가장 높은 시기입니다. 현금을 일부러 적게 들고 다니세요.',
+      id: 'streak-90'
+    });
+  } else {
+    quests.push({
+      tag: 'habit', tagLabel: '유지',
+      title: `도박 무입금 ${streak}일째`,
+      desc: '졸업 후에도 이 기록은 평생 관리 항목입니다. 계속 이어가세요.',
+      id: 'streak-maintain'
+    });
+  }
+
+  if (loansIncomplete) {
+    quests.push({
+      tag: 'normal', tagLabel: '확인필요',
+      title: '대출 잔액·금리 전체 재확인',
+      desc: '일부 대출 정보가 비어있습니다. 정확한 숫자를 채워야 순부채 계산이 맞습니다.',
+      id: 'loans-confirm'
+    });
+  }
+
+  if (familyDebtUnconfirmed) {
+    quests.push({
+      tag: 'normal', tagLabel: '확인필요',
+      title: '동생·아버지 채무 정확한 금액 확정',
+      desc: '추정치로는 우선순위 배분이 부정확할 수 있습니다.',
+      id: 'family-confirm'
+    });
+  }
+
+  const highRateLoans = data.loans.filter(l => l.rate >= 15 && computeLoanDerived(l).balance > 0);
+  if (highRateLoans.length > 0) {
+    const names = highRateLoans.map(l => l.name).join(', ');
+    quests.push({
+      tag: 'urgent', tagLabel: '대환검토',
+      title: '고금리 대출 대환 상담 검토',
+      desc: `${names} 금리가 15% 이상입니다. 서민금융진흥원 '저금리전환대출'이나 만 34세 이하라면 '햇살론 유스'(약 3.5%) 대상이 되는지 1397 콜센터나 kinfa.or.kr에서 확인해보세요. 대환에 성공하면 어떤 투자보다 확실한 이득입니다.`,
+      id: 'refinance-check'
+    });
+  }
+
+  if (emergPct < 100 && netDebt > 0) {
+    const remain = Math.max(0, emergGoal - cash);
+    quests.push({
+      tag: 'normal', tagLabel: '목표',
+      title: `비상금 ${Math.round(emergPct)}% 달성`,
+      desc: `목표까지 ${fmt(remain)} 남았습니다. 월급 들어오면 4순위로 배정하세요.`,
+      id: 'emerg-goal'
+    });
+  } else if (netDebt > 0) {
+    quests.push({
+      tag: 'habit', tagLabel: '달성',
+      title: '비상금 목표 달성',
+      desc: '이제 여유자금은 전부 5순위 고금리 추가상환으로 돌리세요.',
+      id: 'emerg-done'
+    });
+  }
+
+  if (prevNetDebt !== null && netDebt < prevNetDebt) {
+    const reduced = prevNetDebt - netDebt;
+    quests.push({
+      tag: 'habit', tagLabel: '성과',
+      title: `순부채 ${fmt(reduced)} 감소`,
+      desc: '지난 확인 대비 줄었습니다. 이 흐름을 유지하세요.',
+      id: 'debt-reduced'
+    });
+  }
+
+  return quests;
+}
+
+function renderQuests(ctx) {
+  const level = getLevel(ctx.streak, ctx.emergPct, ctx.progress, ctx.netDebt);
+  document.getElementById('level-label').textContent = level.label;
+  document.getElementById('level-sub').textContent = level.sub;
+  const badge = document.getElementById('lv-badge');
+  badge.textContent = level.badge;
+  badge.className = 'lvbadge ' + level.cls;
+
+  const quests = buildQuests(ctx);
+  const el = document.getElementById('quest-list');
+  el.innerHTML = '';
+  if (quests.length === 0) {
+    el.innerHTML = '<p style="font-size:13px; color:var(--text-tertiary); margin:0;">입력값을 채우면 퀘스트가 생성됩니다.</p>';
+    return;
+  }
+  data.questDone = data.questDone || {};
+  quests.forEach(q => {
+    const done = !!data.questDone[q.id];
+    const row = document.createElement('div');
+    row.className = 'dynamic-quest' + (done ? ' done' : '');
+    row.innerHTML = `
+      <input type="checkbox" ${done ? 'checked' : ''} data-qid="${q.id}">
+      <div class="qtext">
+        <p class="qtitle">${q.title}</p>
+        <p class="qdesc">${q.desc}</p>
+      </div>
+      <span class="qtag ${q.tag}">${q.tagLabel}</span>
+    `;
+    el.appendChild(row);
+  });
+  el.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      data.questDone = data.questDone || {};
+      data.questDone[e.target.dataset.qid] = e.target.checked;
+      e.target.closest('.dynamic-quest').classList.toggle('done', e.target.checked);
+      saveData();
+    });
+  });
+}
+
+function fillInputs() {
+  document.getElementById('sibling-debt').value = data.siblingDebt || '';
+  document.getElementById('father-debt').value = data.fatherDebt || '';
+  document.getElementById('cash').value = data.cash || '';
+  document.getElementById('emerg-goal').value = data.emergGoal || '';
+  document.getElementById('last-gamble').value = data.lastGamble || '';
+  document.getElementById('start-net-debt').value = data.startNetDebt || '';
+  document.getElementById('family-unconfirmed').checked = !!data.familyDebtUnconfirmed;
+}
+
+document.getElementById('sibling-debt').addEventListener('input', e => { data.siblingDebt = parseFloat(e.target.value)||0; calculate(); });
+document.getElementById('father-debt').addEventListener('input', e => { data.fatherDebt = parseFloat(e.target.value)||0; calculate(); });
+document.getElementById('family-unconfirmed').addEventListener('change', e => { data.familyDebtUnconfirmed = e.target.checked; calculate(); });
+document.getElementById('cash').addEventListener('input', e => { data.cash = parseFloat(e.target.value)||0; calculate(); });
+document.getElementById('emerg-goal').addEventListener('input', e => { data.emergGoal = parseFloat(e.target.value)||1; calculate(); });
+document.getElementById('last-gamble').addEventListener('input', e => { data.lastGamble = e.target.value; calculate(); });
+document.getElementById('start-net-debt').addEventListener('input', e => {
+  const v = parseFloat(e.target.value);
+  data.startNetDebt = isNaN(v) ? null : v;
+  calculate();
+});
+
+document.getElementById('add-month').addEventListener('click', () => {
+  if (!data.monthlyRecords) data.monthlyRecords = [];
+  const key = currentMonthKey();
+  if (data.monthlyRecords.some(r => r.month === key)) {
+    alert('이번 달 기록이 이미 있습니다. 아래 카드에서 수정해주세요.');
+    return;
+  }
+  const fixedExpense = getExpenseTotal().total;
+  data.monthlyRecords.push({month: key, income: 0, expense: fixedExpense});
+  renderMonths();
+  calculate();
+});
+
+document.getElementById('add-expense').addEventListener('click', () => {
+  if (!data.expenses) data.expenses = [];
+  data.expenses.push({name:'새 항목', amount:0});
+  renderExpenses();
+});
+
+document.getElementById('add-loan').addEventListener('click', () => {
+  data.loans.push({name:'새 대출', principal:0, rate:0, startDate:'', termMonths:'', manualBalance:0});
+  renderLoans();
+  calculate();
+});
+
+document.getElementById('save-btn').addEventListener('click', () => {
+  saveData();
+  const btn = document.getElementById('save-btn');
+  const orig = btn.textContent;
+  btn.textContent = '저장됨';
+  setTimeout(() => { btn.textContent = orig; }, 1200);
+});
+
+document.getElementById('export-btn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'debt_dashboard_backup_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('import-btn').addEventListener('click', () => {
+  document.getElementById('import-file').click();
+});
+
+document.getElementById('import-file').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const imported = JSON.parse(ev.target.result);
+      data = imported;
+      fillInputs();
+      renderLoans();
+      renderExpenses();
+      renderMonths();
+      calculate();
+    } catch(err) {
+      alert('파일을 읽을 수 없습니다. 올바른 백업 파일인지 확인해주세요.');
+    }
+  };
+  reader.readAsText(file);
+});
+
+document.getElementById('reset-btn').addEventListener('click', () => {
+  if (!confirm('모든 입력값이 초기화됩니다. 계속하시겠습니까?')) return;
+  data = defaultData();
+  try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+  fillInputs();
+  renderLoans();
+  renderExpenses();
+  renderMonths();
+  calculate();
+});
+
+fillInputs();
+renderLoans();
+renderExpenses();
+renderMonths();
+calculate();
+</script>
+</body>
+</html>
