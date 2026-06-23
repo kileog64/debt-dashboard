@@ -264,6 +264,16 @@
     color: var(--text-secondary);
     margin-bottom: 8px;
   }
+  .lvbadge {
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+  .lvbadge.danger { background: var(--danger-soft); color: var(--danger); }
+  .lvbadge.warn { background: var(--warn-soft); color: var(--warn); }
+  .lvbadge.success { background: var(--success-soft); color: var(--success); }
+  .qtag.grad { background: #E6F1FB; color: #0C447C; }
   @media (max-width: 600px) {
     .wrap { padding: 1.25rem 1rem 3rem; }
     header h1 { font-size: 19px; }
@@ -313,6 +323,13 @@
 </div>
 
 <div class="card">
+  <h2>예상 완료 시기</h2>
+  <div class="row"><span class="label-fixed">월 여유자금</span><input type="number" id="monthly-surplus" placeholder="월급에서 고정비 빼고 남는 돈(원)"></div>
+  <p style="font-size:12px; color:var(--text-tertiary); margin:6px 0 12px;">이번달 현금흐름이나 평균적으로 매달 빚 갚는 데 쓸 수 있는 돈을 입력하세요.</p>
+  <div id="payoff-result"></div>
+</div>
+
+<div class="card">
   <h2>대출 잔액<button id="add-loan">+ 대출 추가</button></h2>
   <div id="loans-list"></div>
 </div>
@@ -344,7 +361,7 @@
 </div>
 
 <div class="card">
-  <h2>현재 레벨</h2>
+  <h2>현재 레벨<span id="lv-badge" class="lvbadge">-</span></h2>
   <p id="level-label" style="font-size:16px; font-weight:600; margin:0 0 4px;">-</p>
   <p id="level-sub" style="font-size:13px; color:var(--text-secondary); margin:0;">-</p>
 </div>
@@ -400,6 +417,7 @@ function defaultData() {
     familyDebtUnconfirmed: true,
     cash: 200000,
     emergGoal: 3000000,
+    monthlySurplus: 0,
     lastGamble: '2026-06-23',
     startNetDebt: null,
     prevNetDebt: null,
@@ -480,6 +498,64 @@ function renderLoansChart() {
   });
 }
 
+function calcPayoffEstimate(netDebt, monthlySurplus, weightedAnnualRate) {
+  if (netDebt <= 0) {
+    return {type: 'graduated'};
+  }
+  if (!monthlySurplus || monthlySurplus <= 0) {
+    return {type: 'no-input'};
+  }
+  const monthlyRate = (weightedAnnualRate || 0) / 100 / 12;
+  let balance = netDebt;
+  let months = 0;
+  const maxMonths = 600;
+  while (balance > 0 && months < maxMonths) {
+    const interest = balance * monthlyRate;
+    balance = balance + interest - monthlySurplus;
+    months++;
+    if (monthlySurplus <= balance + interest - balance && interest >= monthlySurplus) {
+      return {type: 'never', months: null};
+    }
+  }
+  if (months >= maxMonths) {
+    return {type: 'never'};
+  }
+  const targetDate = new Date();
+  targetDate.setMonth(targetDate.getMonth() + months);
+  return {type: 'ok', months, date: targetDate};
+}
+
+function renderPayoffEstimate(netDebt, surplus) {
+  const totalLoanBalance = data.loans.reduce((s,l) => s + (l.balance||0), 0);
+  const weightedRate = totalLoanBalance > 0
+    ? data.loans.reduce((s,l) => s + (l.balance||0) * (l.rate||0), 0) / totalLoanBalance
+    : 0;
+
+  const result = calcPayoffEstimate(netDebt, surplus, weightedRate);
+  const el = document.getElementById('payoff-result');
+
+  if (result.type === 'graduated') {
+    el.innerHTML = `<p style="font-size:14px; font-weight:600; color:var(--success); margin:0;">이미 순부채를 다 갚았습니다.</p>`;
+    return;
+  }
+  if (result.type === 'no-input') {
+    el.innerHTML = `<p style="font-size:13px; color:var(--text-tertiary); margin:0;">월 여유자금을 입력하면 예상 완료일이 계산됩니다.</p>`;
+    return;
+  }
+  if (result.type === 'never') {
+    el.innerHTML = `<p style="font-size:13px; color:var(--danger); margin:0;">현재 여유자금으로는 이자가 원금 감소분보다 많아 줄어들지 않습니다. 고금리 대출 대환이나 여유자금 증액이 필요합니다.</p>`;
+    return;
+  }
+  const years = Math.floor(result.months / 12);
+  const remMonths = result.months % 12;
+  const yearStr = years > 0 ? `${years}년 ` : '';
+  const dateStr = `${result.date.getFullYear()}년 ${result.date.getMonth()+1}월`;
+  el.innerHTML = `
+    <p style="font-size:20px; font-weight:600; margin:0 0 4px;">${dateStr}</p>
+    <p style="font-size:13px; color:var(--text-secondary); margin:0;">약 ${yearStr}${remMonths}개월 후 순부채 완전 청산 예상 (가중평균 금리 ${weightedRate.toFixed(1)}% 적용, 매달 ${fmt(surplus)}씩 상환 가정)</p>
+  `;
+}
+
 function calculate() {
   const totalLoans = data.loans.reduce((s,l) => s + (l.balance||0), 0);
   const familyDebt = (data.siblingDebt||0) + (data.fatherDebt||0);
@@ -510,9 +586,11 @@ function calculate() {
   }
   const start = data.startNetDebt || 1;
   const progress = start > 0 ? Math.max(0, Math.min(1, 1 - netDebt / start)) : 0;
-  document.getElementById('hp-pct').textContent = Math.round(progress*100) + '%';
-  document.getElementById('hp-bar').style.width = (progress*100) + '%';
-  document.getElementById('hp-sub').textContent = `시작 ${fmt(start)} → 현재 ${fmt(netDebt)}`;
+  document.getElementById('hp-pct').textContent = netDebt <= 0 ? '100%' : Math.round(progress*100) + '%';
+  document.getElementById('hp-bar').style.width = (netDebt <= 0 ? 100 : progress*100) + '%';
+  document.getElementById('hp-sub').textContent = netDebt <= 0
+    ? `시작 ${fmt(start)} → 완전 청산, 순자산 ${fmt(Math.abs(netDebt))}`
+    : `시작 ${fmt(start)} → 현재 ${fmt(netDebt)}`;
 
   const loansIncomplete = data.loans.some(l => !l.balance || l.balance <= 0);
   const familyDebtUnconfirmed = !!data.familyDebtUnconfirmed;
@@ -522,19 +600,36 @@ function calculate() {
     streak, cash, emergGoal, emergPct, netDebt,
     prevNetDebt: data.prevNetDebt !== undefined ? data.prevNetDebt : null,
     progress, loansIncomplete, familyDebtUnconfirmed, monthlyLoanPayment: loanPaySum,
-    cashRunwayDays
+    cashRunwayDays, familyDebtRemain: familyDebt
   });
 
   renderLoansChart();
+  renderPayoffEstimate(netDebt, data.monthlySurplus || 0);
   data.prevNetDebt = netDebt;
   saveData();
 }
 
-function getLevel(streak, emergPct, progress) {
-  if (streak >= 90 && emergPct >= 100) return {label: 'LV.4 가속 구간', sub: '비상금 목표 달성 + 도박 무입금 90일. 고금리 추가상환에 집중할 차례입니다.'};
-  if (streak >= 30 && emergPct >= 50) return {label: 'LV.3 구조 안정', sub: '도박 무입금 30일을 넘겼고 비상금도 절반 이상 모였습니다.'};
-  if (streak >= 30) return {label: 'LV.2 안정화 진입', sub: '도박 무입금 30일 달성. 다음은 비상금 50% 채우기입니다.'};
-  return {label: 'LV.1 생존 모드', sub: '추가 대출·도박 없이 버티는 게 최우선입니다.'};
+function getLevel(streak, emergPct, progress, netDebt) {
+  if (netDebt <= 0) {
+    const netAsset = Math.abs(netDebt);
+    if (netAsset >= 10000000) {
+      return {label:'LV.7 자산 형성 가속', sub:`순자산 ${fmt(netAsset)} 보유. 빚 갚던 그 속도로 이제 자산을 쌓는 단계입니다.`, badge:'LV.7', cls:'success'};
+    }
+    return {label:'LV.6 부채 졸업', sub:'순부채 0 이하 달성. 이제부터는 자산 형성 게임입니다.', badge:'LV.6', cls:'success'};
+  }
+  if (progress >= 0.9) {
+    return {label:'LV.5 청산 임박', sub:'순부채의 90% 이상을 줄였습니다. 마지막 구간입니다.', badge:'LV.5', cls:'success'};
+  }
+  if (streak >= 90 && emergPct >= 100) {
+    return {label:'LV.4 가속 구간', sub:'비상금 목표 달성 + 도박 무입금 90일. 고금리 추가상환에 집중할 차례입니다.', badge:'LV.4', cls:'warn'};
+  }
+  if (streak >= 30 && emergPct >= 50) {
+    return {label:'LV.3 구조 안정', sub:'도박 무입금 30일을 넘겼고 비상금도 절반 이상 모였습니다.', badge:'LV.3', cls:'warn'};
+  }
+  if (streak >= 30) {
+    return {label:'LV.2 안정화 진입', sub:'도박 무입금 30일 달성. 다음은 비상금 50% 채우기입니다.', badge:'LV.2', cls:'warn'};
+  }
+  return {label:'LV.1 생존 모드', sub:'추가 대출·도박 없이 버티는 게 최우선입니다.', badge:'LV.1', cls:'danger'};
 }
 
 function buildQuests(ctx) {
@@ -542,8 +637,38 @@ function buildQuests(ctx) {
   const {
     streak, cash, emergGoal, emergPct, netDebt, prevNetDebt,
     loansIncomplete, familyDebtUnconfirmed, monthlyLoanPayment,
-    cashRunwayDays
+    cashRunwayDays, progress, familyDebtRemain
   } = ctx;
+
+  if (netDebt <= 0) {
+    quests.push({
+      tag: 'grad', tagLabel: '졸업',
+      title: '부채 졸업 완료',
+      desc: '순부채가 0 이하입니다. 이제 비상금을 생활비 6개월치 수준으로 키우는 걸 다음 목표로 잡아보세요.',
+      id: 'graduated'
+    });
+    if (familyDebtRemain > 0) {
+      quests.push({
+        tag: 'normal', tagLabel: '마무리',
+        title: '가족 채무 완전 정리',
+        desc: `동생·아버지 채무가 아직 ${fmt(familyDebtRemain)} 남아있습니다. 졸업 기념으로 우선 정리하세요.`,
+        id: 'family-remain'
+      });
+    }
+    quests.push({
+      tag: 'habit', tagLabel: '다음 단계',
+      title: '자산형 청년 정책 검토',
+      desc: '청년도약계좌, 청년형 ISA 등 5년 이상 묶이는 상품도 이제 검토할 타이밍입니다.',
+      id: 'asset-policy'
+    });
+  } else if (progress >= 0.9) {
+    quests.push({
+      tag: 'urgent', tagLabel: '마지막',
+      title: '마지막 구간 집중',
+      desc: `순부채 ${fmt(netDebt)} 남았습니다. 여기서 무너지면 가장 아까운 지점입니다. 추가상환 속도를 유지하세요.`,
+      id: 'final-push'
+    });
+  }
 
   if (cash > 0 && monthlyLoanPayment > 0 && cashRunwayDays !== null && cashRunwayDays < 7) {
     quests.push({
@@ -586,7 +711,7 @@ function buildQuests(ctx) {
     quests.push({
       tag: 'habit', tagLabel: '유지',
       title: `도박 무입금 ${streak}일째`,
-      desc: '잘 유지되고 있습니다. 계속 이어가세요.',
+      desc: '졸업 후에도 이 기록은 평생 관리 항목입니다. 계속 이어가세요.',
       id: 'streak-maintain'
     });
   }
@@ -620,7 +745,7 @@ function buildQuests(ctx) {
     });
   }
 
-  if (emergPct < 100) {
+  if (emergPct < 100 && netDebt > 0) {
     const remain = Math.max(0, emergGoal - cash);
     quests.push({
       tag: 'normal', tagLabel: '목표',
@@ -628,7 +753,7 @@ function buildQuests(ctx) {
       desc: `목표까지 ${fmt(remain)} 남았습니다. 월급 들어오면 4순위로 배정하세요.`,
       id: 'emerg-goal'
     });
-  } else {
+  } else if (netDebt > 0) {
     quests.push({
       tag: 'habit', tagLabel: '달성',
       title: '비상금 목표 달성',
@@ -651,9 +776,12 @@ function buildQuests(ctx) {
 }
 
 function renderQuests(ctx) {
-  const level = getLevel(ctx.streak, ctx.emergPct, ctx.progress);
+  const level = getLevel(ctx.streak, ctx.emergPct, ctx.progress, ctx.netDebt);
   document.getElementById('level-label').textContent = level.label;
   document.getElementById('level-sub').textContent = level.sub;
+  const badge = document.getElementById('lv-badge');
+  badge.textContent = level.badge;
+  badge.className = 'lvbadge ' + level.cls;
 
   const quests = buildQuests(ctx);
   const el = document.getElementById('quest-list');
@@ -692,6 +820,7 @@ function fillInputs() {
   document.getElementById('father-debt').value = data.fatherDebt || '';
   document.getElementById('cash').value = data.cash || '';
   document.getElementById('emerg-goal').value = data.emergGoal || '';
+  document.getElementById('monthly-surplus').value = data.monthlySurplus || '';
   document.getElementById('last-gamble').value = data.lastGamble || '';
   document.getElementById('start-net-debt').value = data.startNetDebt || '';
   document.getElementById('family-unconfirmed').checked = !!data.familyDebtUnconfirmed;
@@ -702,6 +831,7 @@ document.getElementById('father-debt').addEventListener('input', e => { data.fat
 document.getElementById('family-unconfirmed').addEventListener('change', e => { data.familyDebtUnconfirmed = e.target.checked; calculate(); });
 document.getElementById('cash').addEventListener('input', e => { data.cash = parseFloat(e.target.value)||0; calculate(); });
 document.getElementById('emerg-goal').addEventListener('input', e => { data.emergGoal = parseFloat(e.target.value)||1; calculate(); });
+document.getElementById('monthly-surplus').addEventListener('input', e => { data.monthlySurplus = parseFloat(e.target.value)||0; calculate(); });
 document.getElementById('last-gamble').addEventListener('input', e => { data.lastGamble = e.target.value; calculate(); });
 document.getElementById('start-net-debt').addEventListener('input', e => {
   const v = parseFloat(e.target.value);
